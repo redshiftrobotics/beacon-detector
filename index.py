@@ -2,7 +2,7 @@ from os import listdir
 from time import sleep
 from random import shuffle
 
-from PIL import Image
+from PIL import Image, ImageFont, ImageDraw
 
 RED_R = 210  # MIN
 RED_G = 150  # MAX
@@ -17,15 +17,19 @@ BLU_R =  85  # MAX
 BLU_G = 255  # MAX
 BLU_B = 200  # MIN
 
-THUMBNAIL_SIZE = 750
-BEACON_VIEW_WIDTH = 500
-BEACON_VIEW_HEIGHT = 250
+IMAGE_SIZE = 1000
+THUMBNAIL_SIZE = IMAGE_SIZE // 5
+BEACON_VIEW_WIDTH = IMAGE_SIZE // 5
+BEACON_VIEW_HEIGHT = BEACON_VIEW_WIDTH // 2
+FONT_SIZE = 20
 
-CLASSIFICATION_THRESHOLD = 1000
-CLASSIFICATION_OTHER_THRESHOLD = 300
+CLASSIFICATION_THRESHOLD = IMAGE_SIZE * .2
+CLASSIFICATION_OTHER_THRESHOLD = IMAGE_SIZE * .05
 
 num_pass = 0
 num_fail = 0
+
+font = ImageFont.truetype('font.ttf', FONT_SIZE)
 
 def _classify_image(red, blue):
   if blue <= CLASSIFICATION_OTHER_THRESHOLD and red > CLASSIFICATION_THRESHOLD:
@@ -43,6 +47,10 @@ def process_image(image):
   im = Image.open(name)
   thumbnail = im.copy()
   thumbnail.thumbnail((THUMBNAIL_SIZE, THUMBNAIL_SIZE))
+  im.thumbnail((IMAGE_SIZE, IMAGE_SIZE))
+
+  draw = ImageDraw.Draw(im)
+
   pix = im.load()
 
   num_red = 0
@@ -79,6 +87,8 @@ def process_image(image):
     color_2_im = Image.new('RGB', (BEACON_VIEW_WIDTH // 2, BEACON_VIEW_HEIGHT), color=color_2)
     im.paste(color_1_im, (0, im.size[1] - BEACON_VIEW_HEIGHT))
     im.paste(color_2_im, (BEACON_VIEW_WIDTH // 2, im.size[1] - BEACON_VIEW_HEIGHT))
+
+  draw.text((10, 10), name.lstrip('images/'), font=font)
 
   im.show('test')
 
