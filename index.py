@@ -1,11 +1,22 @@
 from os import listdir
+from time import sleep
 from random import shuffle
 
 from PIL import Image
 
-DOMINANT_THRESHOLD = 210
-OTHER_THRESHOLD = 170
-GREEN_THRESHOLD = 150 #200
+RED_R = 210  # MIN
+RED_G = 150  # MAX
+# You might be wondering about this next line. The problem is that beacons don't emit red light.
+# It's actually light pink. This means that there is a large amount of blue in it. Therefore, we
+# need to mostly ignore the blue channel, because it ended up with us actually ignoring a lot of
+# red. Ideally, we'd make the G channel higher too, but then we'd start to get a lot of noise.
+# This might go horribly wrong if the match is played against a purple background.
+RED_B = 240  # MAX
+
+BLU_R =  85  # MAX
+BLU_G = 255  # MAX
+BLU_B = 200  # MIN
+
 THUMBNAIL_SIZE = 750
 BEACON_VIEW_WIDTH = 500
 BEACON_VIEW_HEIGHT = 250
@@ -40,14 +51,13 @@ def process_image(image):
   def _process_pixel(pxl):
     nonlocal num_red, num_blue
     R, G, B = pxl
-    if R > DOMINANT_THRESHOLD and B < OTHER_THRESHOLD and G < GREEN_THRESHOLD:
-      num_red = num_red + 1
-      return (255, 0, 0)
-    elif B > DOMINANT_THRESHOLD and R < OTHER_THRESHOLD and G < GREEN_THRESHOLD:
+    if R < BLU_R and G < BLU_G and B > BLU_B:
       num_blue = num_blue + 1
       return (0, 0, 255)
-    else:
-      return (0, 0, 0)
+    if R > RED_R and G < RED_G and B < RED_B:
+      num_red = num_red + 1
+      return (255, 0, 0)
+    return (0, 0, 0)
 
   for i in range(im.size[0]):
     for j in range(im.size[1]):
@@ -72,7 +82,8 @@ def process_image(image):
 
   im.show('test')
 
-  print('{}: Red: {}, Blue: {}, Expected: {}, Actual: {}, OK: {}'.format(name, num_red, num_blue, state, actual_state, state == actual_state))
+  print('{}: Red: {}, Blue: {}, Expected: {}, Actual: {}, OK: {}' \
+        .format(name, num_red, num_blue, state, actual_state, state == actual_state))
   if state == actual_state:
     num_pass = num_pass + 1
   else:
@@ -82,15 +93,13 @@ def process_image(image):
 
 images = []
 
-for state in ['blue', 'red', 'bluered']: #['blue', 'red', 'bluered']: # ['blue']: #['bluered', 'red', 'blue']:
+for state in ['blue', 'red', 'bluered']:
   for image in listdir('images/{}'.format(state)):
     if image[-4:].lower() == '.jpg':
       images.append((state, 'images/{}/{}'.format(state, image)))
 
 
 shuffle(images)
-
-#images = [('blue', 'images/blue/0.jpg')]
 
 for image in images:
   process_image(image)
