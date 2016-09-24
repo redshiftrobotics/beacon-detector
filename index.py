@@ -32,6 +32,42 @@ num_fail = 0
 
 font = ImageFont.truetype('font.ttf', FONT_SIZE)
 
+def _find_biggest_streak(vals):
+  biggest_start  = 0
+  biggest_length = 0
+  current_start  = -1
+  current_length = -1
+
+  for i in range(len(vals)):
+    if vals[i] == 0:
+      if biggest_length < current_length:
+        biggest_start, biggest_length = current_start, current_length
+      current_start = -1
+      current_length = 0
+    else:
+      if current_start == -1:
+        current_start = i
+      current_length += 1
+
+  return (biggest_start, biggest_length)
+
+
+def _find_bluered_order(reds, blues):
+  for i in range(len(reds)):
+    if reds[i] <= blues[i]:
+      reds[i] = 0
+    else:
+      blues[i] = 0
+
+  r_start, r_len = _find_biggest_streak(reds)
+  b_start, b_len = _find_biggest_streak(blues)
+
+  if r_start < b_start:
+    return 'redblue'
+  else:
+    return 'bluered'
+
+
 def _classify_image(reds, blues):
   num_red = reduce(lambda x, num: num + x, reds)
   num_blue = reduce(lambda x, num: num + x, blues)
@@ -42,7 +78,7 @@ def _classify_image(reds, blues):
   elif num_red < CLASSIFICATION_THRESHOLD and num_blue < CLASSIFICATION_THRESHOLD:
     return None
   else:
-    return 'bluered'
+    return _find_bluered_order(reds, blues)
 
 
 def _get_image(name):
@@ -115,7 +151,7 @@ def process_image(image):
 
 images = []
 
-for state in ['blue', 'red', 'bluered']:
+for state in ['blue', 'red', 'bluered', 'redblue']:
   for image in listdir('images/{}'.format(state)):
     if image[-4:].lower() == '.jpg':
       images.append((state, 'images/{}/{}'.format(state, image)))
